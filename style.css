@@ -3,21 +3,46 @@ body {
     justify-content: center;
     align-items: center;
     height: 100vh;
-    background-color: #000;
     margin: 0;
-    font-family: Arial, sans-serif;
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: white;
+    overflow: hidden;
+    position: relative;
+}
+
+body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+        radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 50px 50px;
+    z-index: -1;
 }
 
 .game-container {
     display: flex;
     flex-direction: column;
     align-items: center;
+    padding: 20px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 255, 0.5);
+    position: relative;
+    z-index: 1;
+    backdrop-filter: blur(5px);
 }
 
 .score-container {
     color: white;
     margin-bottom: 10px;
     font-size: 18px;
+    text-shadow: 0 0 5px #00BFFF;
 }
 
 .message-container {
@@ -27,17 +52,23 @@ body {
     height: 30px;
     margin-bottom: 10px;
     text-align: center;
+    text-shadow: 0 0 10px rgba(0, 191, 255, 0.7);
 }
 
 .gugudan-container {
     color: white;
     margin-bottom: 10px;
     font-size: 18px;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 8px 15px;
+    border-radius: 5px;
+    border: 1px solid rgba(0, 191, 255, 0.3);
 }
 
 canvas {
-    border: 1px solid #fff;
-    background-color: #000;
+    border: 2px solid #00BFFF;
+    background-color: rgba(0, 0, 0, 0.8);
+    box-shadow: 0 0 10px #00BFFF, 0 0 20px rgba(0, 191, 255, 0.5);
 }
 
 .mission-clear {
@@ -49,4 +80,78 @@ canvas {
     0% { opacity: 0; }
     50% { opacity: 1; }
     100% { opacity: 0; }
+}
+
+/* 배경 별 애니메이션 */
+@keyframes stars {
+    0% {
+        transform: translateY(0);
+    }
+    100% {
+        transform: translateY(-2000px);
+    }
+}
+
+/* 반응형 디자인 */
+@media (max-width: 600px) {
+    .game-container {
+        padding: 10px;
+    }
+    
+    canvas {
+        width: 240px;
+        height: 400px;
+    }
+}
+
+.game-title {
+    font-size: 28px;
+    margin-bottom: 15px;
+    color: #00BFFF;
+    text-shadow: 0 0 10px rgba(0, 191, 255, 0.7), 0 0 20px rgba(0, 191, 255, 0.5);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.stars {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -2;
+    background: transparent;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+}
+
+.stars::before, .stars::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: 0;
+    width: 100%;
+    height: 200%;
+    background-image: 
+        radial-gradient(2px 2px at 20px 30px, white, rgba(0, 0, 0, 0)),
+        radial-gradient(2px 2px at 40px 70px, white, rgba(0, 0, 0, 0)),
+        radial-gradient(2px 2px at 50px 160px, white, rgba(0, 0, 0, 0)),
+        radial-gradient(2px 2px at 90px 40px, white, rgba(0, 0, 0, 0)),
+        radial-gradient(2px 2px at 130px 80px, white, rgba(0, 0, 0, 0)),
+        radial-gradient(2px 2px at 160px 120px, white, rgba(0, 0, 0, 0));
+    background-repeat: repeat;
+    background-size: 200px 200px;
+    animation: stars 30s linear infinite;
+}
+
+.stars::after {
+    background-image: 
+        radial-gradient(2px 2px at 15px 15px, white, rgba(0, 0, 0, 0)),
+        radial-gradient(2px 2px at 60px 40px, white, rgba(0, 0, 0, 0)),
+        radial-gradient(2px 2px at 80px 120px, white, rgba(0, 0, 0, 0)),
+        radial-gradient(2px 2px at 110px 50px, white, rgba(0, 0, 0, 0)),
+        radial-gradient(2px 2px at 140px 90px, white, rgba(0, 0, 0, 0)),
+        radial-gradient(2px 2px at 180px 60px, white, rgba(0, 0, 0, 0));
+    background-size: 250px 250px;
+    animation: stars 45s linear infinite;
+    opacity: 0.5;
 } 
