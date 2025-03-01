@@ -10,16 +10,56 @@
     <div class="stars"></div>
     <div class="game-container">
         <h1 class="game-title">구구단 테트리스</h1>
-        <div class="score-container">
-            <p>Score: <span id="score">0</span></p>
+        
+        <div class="game-area">
+            <!-- 왼쪽 패널: 홀드 및 레벨 정보 -->
+            <div class="side-panel left-panel">
+                <div class="hold-container">
+                    <h3>HOLD</h3>
+                    <canvas id="hold" width="80" height="80"></canvas>
+                </div>
+                <div class="level-container">
+                    <p>Level: <span id="level">1</span></p>
+                </div>
+            </div>
+            
+            <!-- 중앙: 메인 게임 영역 -->
+            <div class="main-panel">
+                <div class="score-container">
+                    <p>Score: <span id="score">0</span></p>
+                </div>
+                <div class="message-container" id="message-container">
+                    <p id="mission-message"></p>
+                </div>
+                <div class="gugudan-container">
+                    <p>현재 문제: <span id="current-gugudan">2 x 1 = ?</span></p>
+                </div>
+                <canvas id="tetris" width="240" height="400"></canvas>
+            </div>
+            
+            <!-- 오른쪽 패널: 다음 블록 미리보기 -->
+            <div class="side-panel right-panel">
+                <div class="next-container">
+                    <h3>NEXT</h3>
+                    <canvas id="next" width="80" height="80"></canvas>
+                </div>
+                <div class="controls-info">
+                    <p>C: 블록 홀드</p>
+                    <p>↑: 회전</p>
+                    <p>Space: 즉시 떨어뜨림</p>
+                </div>
+            </div>
         </div>
-        <div class="message-container" id="message-container">
-            <p id="mission-message"></p>
+        
+        <!-- 게임 오버 화면 -->
+        <div id="game-over" class="game-over">
+            <div class="game-over-content">
+                <h2>GAME OVER</h2>
+                <p>최종 점수: <span id="final-score">0</span></p>
+                <p>최종 레벨: <span id="final-level">1</span></p>
+                <button id="restart-button">다시 시작</button>
+            </div>
         </div>
-        <div class="gugudan-container">
-            <p>현재 문제: <span id="current-gugudan">2 x 1 = ?</span></p>
-        </div>
-        <canvas id="tetris" width="240" height="400"></canvas>
     </div>
     <script src="script.js"></script>
 </body>
