@@ -1,379 +1,538 @@
-const canvas = document.getElementById('tetris');
-if (!canvas) {
-    console.error('Canvas element not found');
-}
-const context = canvas.getContext('2d');
-if (!context) {
-    console.error('2D context not available');
-}
-context.scale(20, 20);
+// 브라우저 환경에서만 실행되도록 코드를 감싸줍니다
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    // 캔버스 및 컨텍스트 설정
+    const canvas = document.getElementById('tetris');
+    const ctx = canvas.getContext('2d');
+    const scoreElement = document.getElementById('score');
+    const messageElement = document.getElementById('message');
+    const gugudanElement = document.getElementById('gugudan');
+    const answerElement = document.getElementById('answer');
 
-// 구구단 관련 변수 추가
-let currentMultiplier = 2; // 현재 단 (2단부터 시작)
-let currentNumber = 1;     // 현재 숫자 (1부터 시작)
-let gugudanCompleted = 0;  // 완료한 구구단 개수
+    // 홀드, 다음 블록 미리보기, 레벨 요소 설정
+    const holdCanvas = document.getElementById('hold');
+    const holdCtx = holdCanvas.getContext('2d');
+    const nextCanvas = document.getElementById('next');
+    const nextCtx = nextCanvas.getContext('2d');
+    const levelElement = document.getElementById('level');
+    const gameOverElement = document.querySelector('.game-over');
+    const finalScoreElement = document.getElementById('final-score');
+    const finalLevelElement = document.getElementById('final-level');
+    const restartButton = document.getElementById('restart-button');
 
-// 구구단 문제 업데이트 함수
-function updateGugudan() {
-    const gugudanElement = document.getElementById('current-gugudan');
-    if (gugudanElement) {
-        gugudanElement.textContent = `${currentMultiplier} x ${currentNumber} = ${currentMultiplier * currentNumber}`;
-    } else {
-        console.error('Gugudan element not found');
-    }
-}
+    // 캔버스 크기 설정
+    ctx.scale(20, 20);
+    holdCtx.scale(15, 15);
+    nextCtx.scale(15, 15);
 
-// 다음 구구단 문제로 이동
-function nextGugudan() {
-    currentNumber++;
-    if (currentNumber > 9) {
-        currentNumber = 1;
-        currentMultiplier++;
-        if (currentMultiplier > 9) {
-            currentMultiplier = 2; // 9단까지 완료하면 다시 2단부터
+    // 게임 상태 변수
+    let dropCounter = 0;
+    let dropInterval = 1000;
+    let lastTime = 0;
+    let score = 0;
+    let level = 1;
+    let gameOver = false;
+    let holdPiece = null;
+    let canHold = true;
+    let nextPiece = null;
+
+    // 블록 색상 정의
+    const colors = [
+        null,
+        '#FF0D72', // T
+        '#0DC2FF', // I
+        '#0DFF72', // J
+        '#F538FF', // L
+        '#FF8E0D', // O
+        '#FFE138', // S
+        '#3877FF'  // Z
+    ];
+
+    // 구구단 관련 변수
+    let currentQuestion = null;
+    let currentAnswer = null;
+    let missionClear = false;
+
+    // 테트로미노 모양 정의
+    const pieces = 'TIJLOSZT';
+
+    // 테트로미노 생성 함수
+    function createPiece(type) {
+        if (type === 'T') {
+            return [
+                [0, 0, 0],
+                [1, 1, 1],
+                [0, 1, 0],
+            ];
+        } else if (type === 'I') {
+            return [
+                [0, 2, 0, 0],
+                [0, 2, 0, 0],
+                [0, 2, 0, 0],
+                [0, 2, 0, 0],
+            ];
+        } else if (type === 'J') {
+            return [
+                [0, 3, 0],
+                [0, 3, 0],
+                [3, 3, 0],
+            ];
+        } else if (type === 'L') {
+            return [
+                [0, 4, 0],
+                [0, 4, 0],
+                [0, 4, 4],
+            ];
+        } else if (type === 'O') {
+            return [
+                [5, 5],
+                [5, 5],
+            ];
+        } else if (type === 'S') {
+            return [
+                [0, 6, 6],
+                [6, 6, 0],
+                [0, 0, 0],
+            ];
+        } else if (type === 'Z') {
+            return [
+                [7, 7, 0],
+                [0, 7, 7],
+                [0, 0, 0],
+            ];
         }
-        gugudanCompleted++;
     }
-    updateGugudan();
-}
 
-// 미션 클리어 메시지 표시
-function showMissionClear() {
-    const messageElement = document.getElementById('mission-message');
-    if (messageElement) {
-        messageElement.textContent = "구구단 Mission Clear!";
-        messageElement.classList.add('mission-clear');
+    // 플레이어 객체 초기화
+    const player = {
+        pos: {x: 0, y: 0},
+        matrix: null,
+        score: 0,
+    };
+
+    // 구구단 문제 생성 함수
+    function createGugudanQuestion() {
+        const num1 = Math.floor(Math.random() * 8) + 2;
+        const num2 = Math.floor(Math.random() * 9) + 1;
+        currentQuestion = `${num1} × ${num2} = ?`;
+        currentAnswer = num1 * num2;
+        gugudanElement.textContent = currentQuestion;
+        missionClear = false;
+        messageElement.textContent = '구구단을 풀어서 블록을 제거하세요!';
+        messageElement.classList.remove('mission-clear');
+    }
+
+    // 충돌 감지 함수
+    function collide(arena, player) {
+        const [m, o] = [player.matrix, player.pos];
+        for (let y = 0; y < m.length; ++y) {
+            for (let x = 0; x < m[y].length; ++x) {
+                if (m[y][x] !== 0 &&
+                    (arena[y + o.y] &&
+                    arena[y + o.y][x + o.x]) !== 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    // 아레나(게임판) 생성 함수
+    function createMatrix(w, h) {
+        const matrix = [];
+        while (h--) {
+            matrix.push(new Array(w).fill(0));
+        }
+        return matrix;
+    }
+
+    // 아레나와 플레이어 매트릭스 병합 함수
+    function merge(arena, player) {
+        player.matrix.forEach((row, y) => {
+            row.forEach((value, x) => {
+                if (value !== 0) {
+                    arena[y + player.pos.y][x + player.pos.x] = value;
+                }
+            });
+        });
+    }
+
+    // 행 제거 함수
+    function arenaSweep() {
+        let rowCount = 0;
+        outer: for (let y = arena.length - 1; y > 0; --y) {
+            for (let x = 0; x < arena[y].length; ++x) {
+                if (arena[y][x] === 0) {
+                    continue outer;
+                }
+            }
+
+            const row = arena.splice(y, 1)[0].fill(0);
+            arena.unshift(row);
+            ++y;
+            rowCount++;
+        }
+
+        if (rowCount > 0) {
+            player.score += rowCount * 100 * level;
+            scoreElement.textContent = player.score;
+            
+            // 레벨 업 체크
+            checkLevelUp();
+        }
+    }
+
+    // 레벨 업 체크 함수
+    function checkLevelUp() {
+        const newLevel = Math.floor(player.score / 1000) + 1;
+        if (newLevel > level) {
+            level = newLevel;
+            levelElement.textContent = level;
+            // 레벨이 올라갈 때마다 블록이 떨어지는 속도 증가
+            dropInterval = Math.max(100, 1000 - (level - 1) * 100);
+            messageElement.textContent = `레벨 업! 레벨 ${level}`;
+            setTimeout(() => {
+                if (!gameOver) {
+                    messageElement.textContent = '구구단을 풀어서 블록을 제거하세요!';
+                }
+            }, 2000);
+        }
+    }
+
+    // 플레이어 드롭 함수
+    function playerDrop() {
+        player.pos.y++;
+        if (collide(arena, player)) {
+            player.pos.y--;
+            merge(arena, player);
+            playerReset();
+            arenaSweep();
+            updateScore();
+        }
+        dropCounter = 0;
+    }
+
+    // 플레이어 이동 함수
+    function playerMove(dir) {
+        player.pos.x += dir;
+        if (collide(arena, player)) {
+            player.pos.x -= dir;
+        }
+    }
+
+    // 플레이어 리셋 함수
+    function playerReset() {
+        // 다음 블록이 없으면 생성
+        if (!nextPiece) {
+            nextPiece = createPiece(pieces[pieces.length * Math.random() | 0]);
+        }
         
-        // 3초 후 메시지 제거
-        setTimeout(() => {
-            messageElement.textContent = "";
-            messageElement.classList.remove('mission-clear');
-        }, 3000);
-    } else {
-        console.error('Message element not found');
-    }
-}
-
-function arenaSweep() {
-    let rowCount = 1;
-    let rowsCleared = 0;
-    
-    outer: for (let y = arena.length - 1; y > 0; --y) {
-        for (let x = 0; x < arena[y].length; ++x) {
-            if (arena[y][x] === 0) {
-                continue outer;
-            }
+        player.matrix = nextPiece;
+        nextPiece = createPiece(pieces[pieces.length * Math.random() | 0]);
+        
+        // 다음 블록 미리보기 업데이트
+        drawNext();
+        
+        player.pos.y = 0;
+        player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
+        
+        // 게임 오버 체크
+        if (collide(arena, player)) {
+            showGameOver();
         }
-
-        const row = arena.splice(y, 1)[0].fill(0);
-        arena.unshift(row);
-        ++y;
-
-        player.score += rowCount * 10;
-        rowCount *= 2;
-        rowsCleared++;
+        
+        // 홀드 사용 가능하도록 리셋
+        canHold = true;
     }
-    
-    // 줄이 하나라도 완성되면 구구단 진행 및 메시지 표시
-    if (rowsCleared > 0) {
-        nextGugudan();
-        showMissionClear();
+
+    // 게임 오버 표시 함수
+    function showGameOver() {
+        gameOver = true;
+        finalScoreElement.textContent = player.score;
+        finalLevelElement.textContent = level;
+        gameOverElement.classList.add('show');
+        messageElement.textContent = '게임 오버!';
     }
-    
-    updateScore();
-}
 
-function collide(arena, player) {
-    const [m, o] = [player.matrix, player.pos];
-    for (let y = 0; y < m.length; ++y) {
-        for (let x = 0; x < m[y].length; ++x) {
-            if (m[y][x] !== 0 &&
-               (arena[y + o.y] &&
-                arena[y + o.y][x + o.x]) !== 0) {
-                return true;
-            }
-        }
+    // 게임 재시작 함수
+    function restartGame() {
+        // 게임 상태 초기화
+        arena.forEach(row => row.fill(0));
+        player.score = 0;
+        score = 0;
+        level = 1;
+        dropInterval = 1000;
+        gameOver = false;
+        holdPiece = null;
+        canHold = true;
+        
+        // UI 업데이트
+        scoreElement.textContent = '0';
+        levelElement.textContent = '1';
+        messageElement.textContent = '구구단을 풀어서 블록을 제거하세요!';
+        gameOverElement.classList.remove('show');
+        
+        // 새 구구단 문제 생성
+        createGugudanQuestion();
+        
+        // 새 블록 생성
+        nextPiece = createPiece(pieces[pieces.length * Math.random() | 0]);
+        drawNext(); // 다음 블록 그리기
+        playerReset();
+        
+        // 홀드 영역 초기화
+        holdCtx.clearRect(0, 0, holdCanvas.width, holdCanvas.height);
+        
+        // 게임 루프 재시작
+        update();
     }
-    return false;
-}
 
-function createMatrix(w, h) {
-    const matrix = [];
-    while (h--) {
-        matrix.push(new Array(w).fill(0));
-    }
-    return matrix;
-}
-
-function createPiece(type) {
-    console.log('Creating piece of type:', type);
-    
-    if (type === 'T') {
-        return [
-            [0, 0, 0],
-            [5, 5, 5],
-            [0, 5, 0],
-        ];
-    } else if (type === 'O') {
-        // This code makes a square block for the game.
-        // The block is made of the number 7.
-        // It looks like this:
-        // 7 7
-        // 7 7
-        return [
-            [7, 7],
-            [7, 7],
-        ];
-    } else if (type === 'L') {
-        return [
-            [0, 6, 0],
-            [0, 6, 0],
-            [0, 6, 6],
-        ];
-    } else if (type === 'J') {
-        return [
-            [0, 3, 0],
-            [0, 3, 0],
-            [3, 3, 0],
-        ];
-    } else if (type === 'I') {
-        return [
-            [0, 4, 0, 0],
-            [0, 4, 0, 0],
-            [0, 4, 0, 0],
-            [0, 4, 0, 0],
-        ];
-    } else if (type === 'S') {
-        return [
-            [0, 2, 2],
-            [2, 2, 0],
-            [0, 0, 0],
-        ];
-    } else if (type === 'Z') {
-        return [
-            [1, 1, 0],
-            [0, 1, 1],
-            [0, 0, 0],
-        ];
-    }
-}
-
-function drawMatrix(matrix, offset) {
-    matrix.forEach((row, y) => {
-        row.forEach((value, x) => {
-            if (value !== 0) {
-                context.fillStyle = colors[value];
-                context.fillRect(x + offset.x,
-                                 y + offset.y,
-                                 1, 1);
-            }
-        });
-    });
-}
-
-function draw() {
-    context.fillStyle = '#000';
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // 배경에 "이윤재" 텍스트 추가
-    context.save();
-    context.globalAlpha = 0.5; // 투명도를 높여 더 선명하게
-    context.font = 'bold 3px Arial'; // 폰트 크기 증가
-    context.fillStyle = '#00BFFF'; // 찐한 하늘색(DeepSkyBlue)
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    
-    // 캔버스 중앙에 텍스트 그리기
-    context.fillText("이윤재", 6, 10);
-    
-    // 상태 복원
-    context.restore();
-
-    drawMatrix(arena, {x: 0, y: 0});
-    drawMatrix(player.matrix, player.pos);
-}
-
-function merge(arena, player) {
-    player.matrix.forEach((row, y) => {
-        row.forEach((value, x) => {
-            if (value !== 0) {
-                arena[y + player.pos.y][x + player.pos.x] = value;
-            }
-        });
-    });
-}
-
-function rotate(matrix, dir) {
-    console.log('Rotating matrix:', matrix, 'direction:', dir);
-    
-    // 행렬 복사본 생성
-    const newMatrix = matrix.map(row => [...row]);
-    
-    // 행렬 회전
-    for (let y = 0; y < matrix.length; ++y) {
-        for (let x = 0; x < matrix[y].length; ++x) {
-            if (dir > 0) {
-                // 시계 방향 회전
-                matrix[y][x] = newMatrix[matrix.length - 1 - x][y];
-            } else {
-                // 반시계 방향 회전
-                matrix[y][x] = newMatrix[x][matrix.length - 1 - y];
+    // 블록 회전 함수
+    function playerRotate(dir) {
+        const pos = player.pos.x;
+        let offset = 1;
+        rotate(player.matrix, dir);
+        
+        while (collide(arena, player)) {
+            player.pos.x += offset;
+            offset = -(offset + (offset > 0 ? 1 : -1));
+            if (offset > player.matrix[0].length) {
+                rotate(player.matrix, -dir);
+                player.pos.x = pos;
+                return;
             }
         }
     }
-    
-    console.log('Rotated matrix:', matrix);
-}
 
-function playerDrop() {
-    console.log('Dropping piece');
-    
-    player.pos.y++;
-    if (collide(arena, player)) {
+    // 매트릭스 회전 함수
+    function rotate(matrix, dir) {
+        for (let y = 0; y < matrix.length; ++y) {
+            for (let x = 0; x < y; ++x) {
+                [
+                    matrix[x][y],
+                    matrix[y][x],
+                ] = [
+                    matrix[y][x],
+                    matrix[x][y],
+                ];
+            }
+        }
+
+        if (dir > 0) {
+            matrix.forEach(row => row.reverse());
+        } else {
+            matrix.reverse();
+        }
+    }
+
+    // 블록 홀드 함수
+    function holdBlock() {
+        if (!canHold) return;
+        
+        if (holdPiece === null) {
+            holdPiece = player.matrix;
+            playerReset();
+        } else {
+            const temp = player.matrix;
+            player.matrix = holdPiece;
+            holdPiece = temp;
+            
+            player.pos.y = 0;
+            player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
+        }
+        
+        // 홀드 사용 후 다시 사용할 수 없도록 설정
+        canHold = false;
+        
+        // 홀드 블록 그리기
+        drawHold();
+    }
+
+    // 홀드 블록 그리기 함수
+    function drawHold() {
+        holdCtx.clearRect(0, 0, holdCanvas.width, holdCanvas.height);
+        
+        if (holdPiece) {
+            // 홀드 블록 중앙에 그리기
+            const offsetX = (holdCanvas.width / 15 - holdPiece[0].length) / 2;
+            const offsetY = (holdCanvas.height / 15 - holdPiece.length) / 2;
+            
+            holdPiece.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        holdCtx.fillStyle = colors[value];
+                        holdCtx.fillRect(x + offsetX, y + offsetY, 1, 1);
+                        holdCtx.strokeStyle = 'black';
+                        holdCtx.lineWidth = 0.05;
+                        holdCtx.strokeRect(x + offsetX, y + offsetY, 1, 1);
+                    }
+                });
+            });
+        }
+    }
+
+    // 다음 블록 그리기 함수
+    function drawNext() {
+        nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+        
+        if (nextPiece) {
+            // 다음 블록 중앙에 그리기
+            const offsetX = (nextCanvas.width / 15 - nextPiece[0].length) / 2;
+            const offsetY = (nextCanvas.height / 15 - nextPiece.length) / 2;
+            
+            nextPiece.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        nextCtx.fillStyle = colors[value];
+                        nextCtx.fillRect(x + offsetX, y + offsetY, 1, 1);
+                        nextCtx.strokeStyle = 'black';
+                        nextCtx.lineWidth = 0.05;
+                        nextCtx.strokeRect(x + offsetX, y + offsetY, 1, 1);
+                    }
+                });
+            });
+        }
+    }
+
+    // 블록 즉시 드롭 함수
+    function hardDrop() {
+        while (!collide(arena, player)) {
+            player.pos.y++;
+        }
         player.pos.y--;
         merge(arena, player);
         playerReset();
         arenaSweep();
         updateScore();
+        dropCounter = 0;
     }
-    dropCounter = 0;
-}
 
-function playerMove(dir) {
-    player.pos.x += dir;
-    if (collide(arena, player)) {
-        player.pos.x -= dir;
+    // 점수 업데이트 함수
+    function updateScore() {
+        scoreElement.textContent = player.score;
     }
-}
 
-function playerReset() {
-    const pieces = 'TJLOSZI';
-    const pieceType = pieces[Math.floor(Math.random() * pieces.length)];
-    console.log('Selected piece type:', pieceType);
-    
-    player.matrix = createPiece(pieceType);
-    player.pos.y = 0;
-    player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
-    
-    console.log('Player position:', player.pos);
-    console.log('Player matrix:', player.matrix);
-    
-    if (collide(arena, player)) {
-        console.log('Collision detected on reset');
-        arena.forEach(row => row.fill(0));
-        player.score = 0;
-        resetGugudan(); // 구구단 초기화
-        updateScore();
+    // 그리기 함수
+    function draw() {
+        // 배경 지우기
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 아레나와 플레이어 그리기
+        drawMatrix(arena, {x: 0, y: 0});
+        drawMatrix(player.matrix, player.pos);
     }
-}
 
-function playerRotate(dir) {
-    console.log('Rotating piece:', dir);
-    
-    const pos = player.pos.x;
-    let offset = 1;
-    rotate(player.matrix, dir);
-    
-    while (collide(arena, player)) {
-        player.pos.x += offset;
-        offset = -(offset + (offset > 0 ? 1 : -1));
-        if (offset > player.matrix[0].length) {
-            rotate(player.matrix, -dir);
-            player.pos.x = pos;
-            return;
+    // 매트릭스 그리기 함수
+    function drawMatrix(matrix, offset) {
+        matrix.forEach((row, y) => {
+            row.forEach((value, x) => {
+                if (value !== 0) {
+                    ctx.fillStyle = colors[value];
+                    ctx.fillRect(x + offset.x, y + offset.y, 1, 1);
+                    ctx.strokeStyle = 'black';
+                    ctx.lineWidth = 0.05;
+                    ctx.strokeRect(x + offset.x, y + offset.y, 1, 1);
+                }
+            });
+        });
+    }
+
+    // 업데이트 함수
+    function update(time = 0) {
+        if (gameOver) return;
+        
+        const deltaTime = time - lastTime;
+        lastTime = time;
+
+        dropCounter += deltaTime;
+        if (dropCounter > dropInterval) {
+            playerDrop();
+        }
+
+        draw();
+        requestAnimationFrame(update);
+    }
+
+    // 구구단 답변 체크 함수
+    function checkAnswer() {
+        const userAnswer = parseInt(answerElement.value);
+        if (userAnswer === currentAnswer) {
+            missionClear = true;
+            messageElement.textContent = '정답입니다!';
+            messageElement.classList.add('mission-clear');
+            answerElement.value = '';
+            createGugudanQuestion();
+        } else {
+            messageElement.textContent = '틀렸습니다. 다시 시도하세요.';
+            setTimeout(() => {
+                if (!gameOver) {
+                    messageElement.textContent = '구구단을 풀어서 블록을 제거하세요!';
+                }
+            }, 1000);
         }
     }
-}
 
-let dropCounter = 0;
-let dropInterval = 1000;
+    // 키보드 이벤트 리스너
+    document.addEventListener('keydown', event => {
+        if (gameOver) return;
+        
+        if (event.keyCode === 37) {
+            // 왼쪽 화살표
+            playerMove(-1);
+        } else if (event.keyCode === 39) {
+            // 오른쪽 화살표
+            playerMove(1);
+        } else if (event.keyCode === 40) {
+            // 아래쪽 화살표
+            playerDrop();
+        } else if (event.keyCode === 38) {
+            // 위쪽 화살표 (회전)
+            playerRotate(1);
+        } else if (event.keyCode === 32) {
+            // 스페이스바 (하드 드롭)
+            hardDrop();
+        } else if (event.keyCode === 67 || event.keyCode === 16) {
+            // C 키 또는 Shift 키 (홀드)
+            holdBlock();
+        } else if (event.keyCode === 13) {
+            // 엔터 키 (구구단 답변 제출)
+            checkAnswer();
+        }
+    });
 
-let lastTime = 0;
-function update(time = 0) {
-    const deltaTime = time - lastTime;
-    lastTime = time;
+    // 답변 입력 필드 엔터 키 이벤트
+    answerElement.addEventListener('keydown', event => {
+        if (event.keyCode === 13) {
+            checkAnswer();
+            event.preventDefault();
+        }
+    });
 
-    dropCounter += deltaTime;
-    if (dropCounter > dropInterval) {
-        playerDrop();
-    }
+    // 재시작 버튼 이벤트 리스너
+    restartButton.addEventListener('click', restartGame);
 
-    draw();
-    requestAnimationFrame(update);
-}
+    // 아레나 초기화
+    const arena = createMatrix(12, 20);
 
-function updateScore() {
-    const scoreElement = document.getElementById('score');
-    if (scoreElement) {
-        scoreElement.innerText = player.score;
-    } else {
-        console.error('Score element not found');
-    }
-}
-
-const colors = [
-    null,
-    '#FF0D72',
-    '#0DC2FF',
-    '#0DFF72',
-    '#F538FF',
-    '#FF8E0D',
-    '#FFE138',
-    '#3877FF',
-];
-
-const arena = createMatrix(12, 20);
-
-const player = {
-    pos: {x: 0, y: 0},
-    matrix: null,
-    score: 0,
-};
-
-document.addEventListener('keydown', event => {
-    console.log('Key pressed:', event.key, event.keyCode);
+    // 게임 시작 시 초기화
+    // 다음 블록 미리 생성
+    nextPiece = createPiece(pieces[pieces.length * Math.random() | 0]);
     
-    if (event.key === 'ArrowLeft' || event.keyCode === 37) {
-        playerMove(-1);
-    } else if (event.key === 'ArrowRight' || event.keyCode === 39) {
-        playerMove(1);
-    } else if (event.key === 'ArrowDown' || event.keyCode === 40) {
-        playerDrop();
-    } else if (event.key === 'ArrowUp' || event.keyCode === 38) {
-        playerRotate(1); // 위쪽 화살표 키로 시계 방향 회전
-    } else if (event.key === ' ' || event.keyCode === 32) {
-        // 스페이스바로 즉시 드롭
-        playerHardDrop();
-    }
-});
-
-// 즉시 드롭 함수 추가
-function playerHardDrop() {
-    console.log('Hard dropping piece');
+    // 다음 블록 그리기 (초기화 시)
+    drawNext();
     
-    while (!collide(arena, player)) {
-        player.pos.y++;
-    }
-    
-    // 충돌이 발생하면 한 칸 위로 이동
-    player.pos.y--;
-    merge(arena, player);
+    // 초기 블록 생성 및 게임 시작
+    createGugudanQuestion();
     playerReset();
-    arenaSweep();
     updateScore();
-    dropCounter = 0;
-}
-
-// 게임 초기화 시 구구단도 초기화
-function resetGugudan() {
-    currentMultiplier = 2;
-    currentNumber = 1;
-    gugudanCompleted = 0;
-    updateGugudan();
-}
-
-console.log('Game starting...');
-playerReset();
-updateScore();
-updateGugudan(); // 구구단 문제 표시
-update();
+    levelElement.textContent = level;
+    
+    // 홀드 영역 초기화 (빈 상태로)
+    holdCtx.clearRect(0, 0, holdCanvas.width, holdCanvas.height);
+    
+    // 게임 루프 시작
+    update();
+    
+    // 디버깅용 - 콘솔에 블록 정보 출력
+    console.log("Next piece initialized:", nextPiece);
+} 
