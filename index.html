@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>구구단 테트리스</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="score-container">
+            <p>Score: <span id="score">0</span></p>
+        </div>
+        <div class="message-container" id="message-container">
+            <p id="mission-message"></p>
+        </div>
+        <div class="gugudan-container">
+            <p>현재 문제: <span id="current-gugudan">2 x 1 = ?</span></p>
+        </div>
+        <canvas id="tetris" width="240" height="400"></canvas>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html> 

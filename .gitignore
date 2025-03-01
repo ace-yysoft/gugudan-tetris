@@ -1,0 +1,27 @@
+# Node.js 관련
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+package-lock.json
+
+# 운영체제 관련
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 에디터 관련
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 로그 파일
+*.log
+
+# 환경 변수
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local 

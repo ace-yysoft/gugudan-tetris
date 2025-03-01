@@ -1,0 +1,52 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #000;
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
+
+.game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.score-container {
+    color: white;
+    margin-bottom: 10px;
+    font-size: 18px;
+}
+
+.message-container {
+    color: #00BFFF;
+    font-weight: bold;
+    font-size: 20px;
+    height: 30px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.gugudan-container {
+    color: white;
+    margin-bottom: 10px;
+    font-size: 18px;
+}
+
+canvas {
+    border: 1px solid #fff;
+    background-color: #000;
+}
+
+.mission-clear {
+    animation: blink 1s infinite;
+    color: #FFD700;
+}
+
+@keyframes blink {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 0; }
+} 
