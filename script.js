@@ -4,8 +4,8 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     const canvas = document.getElementById('tetris');
     const ctx = canvas.getContext('2d');
     const scoreElement = document.getElementById('score');
-    const messageElement = document.getElementById('message');
-    const gugudanElement = document.getElementById('gugudan');
+    const messageElement = document.getElementById('mission-message');
+    const gugudanElement = document.getElementById('current-gugudan');
     const answerElement = document.getElementById('answer');
 
     // 홀드, 다음 블록 미리보기, 레벨 요소 설정
@@ -507,6 +507,9 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
             event.preventDefault();
         }
     });
+
+    // 확인 버튼 클릭 이벤트
+    document.getElementById('submit-answer').addEventListener('click', checkAnswer);
 
     // 재시작 버튼 이벤트 리스너
     restartButton.addEventListener('click', restartGame);

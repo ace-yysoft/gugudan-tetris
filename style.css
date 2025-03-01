@@ -158,6 +158,38 @@ body::before {
     border: 1px solid rgba(0, 191, 255, 0.3);
 }
 
+.answer-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+    gap: 5px;
+}
+
+#answer {
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 1px solid #00BFFF;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 3px;
+    width: 100px;
+    text-align: center;
+    font-size: 16px;
+}
+
+#submit-answer {
+    background-color: #00BFFF;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#submit-answer:hover {
+    background-color: #0099CC;
+}
+
 canvas#tetris {
     border: 2px solid #00BFFF;
     background-color: rgba(0, 0, 0, 0.8);

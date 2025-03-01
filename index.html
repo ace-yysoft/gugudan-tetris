@@ -29,10 +29,14 @@
                     <p>Score: <span id="score">0</span></p>
                 </div>
                 <div class="message-container" id="message-container">
-                    <p id="mission-message"></p>
+                    <p id="mission-message">구구단을 풀어서 블록을 제거하세요!</p>
                 </div>
                 <div class="gugudan-container">
                     <p>현재 문제: <span id="current-gugudan">2 x 1 = ?</span></p>
+                    <div class="answer-container">
+                        <input type="number" id="answer" placeholder="정답 입력" />
+                        <button id="submit-answer">확인</button>
+                    </div>
                 </div>
                 <canvas id="tetris" width="240" height="400"></canvas>
             </div>
