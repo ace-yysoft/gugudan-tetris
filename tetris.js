@@ -276,6 +276,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
         
         // 새 블록 생성
         nextPiece = createPiece(pieces[pieces.length * Math.random() | 0]);
+        drawNext(); // 다음 블록 그리기
         playerReset();
         
         // 홀드 영역 초기화
@@ -517,6 +518,9 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     // 다음 블록 미리 생성
     nextPiece = createPiece(pieces[pieces.length * Math.random() | 0]);
     
+    // 다음 블록 그리기 (초기화 시)
+    drawNext();
+    
     // 초기 블록 생성 및 게임 시작
     createGugudanQuestion();
     playerReset();
@@ -528,4 +532,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     
     // 게임 루프 시작
     update();
+    
+    // 디버깅용 - 콘솔에 블록 정보 출력
+    console.log("Next piece initialized:", nextPiece);
 } 
