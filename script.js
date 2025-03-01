@@ -339,10 +339,8 @@ document.addEventListener('keydown', event => {
         playerMove(1);
     } else if (event.key === 'ArrowDown' || event.keyCode === 40) {
         playerDrop();
-    } else if (event.key === 'q' || event.keyCode === 81) {
-        playerRotate(-1);
-    } else if (event.key === 'w' || event.keyCode === 87) {
-        playerRotate(1);
+    } else if (event.key === 'ArrowUp' || event.keyCode === 38) {
+        playerRotate(1); // 위쪽 화살표 키로 시계 방향 회전
     } else if (event.key === ' ' || event.keyCode === 32) {
         // 스페이스바로 즉시 드롭
         playerHardDrop();
